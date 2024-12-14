@@ -123,13 +123,10 @@ struct StopwatchView: View {
     @State private var isRunning = false
     @State private var timeElapsed: TimeInterval = 0
     @State private var timer: Timer? = nil
+    @State private var hapticTimer: Timer? = nil
 
     var body: some View {
         VStack {
-            Text(formatTime(timeElapsed))
-                .font(.largeTitle)
-                .padding()
-
             HStack {
                 Button(action: {
                     if isRunning {
@@ -145,18 +142,27 @@ struct StopwatchView: View {
                         .clipShape(Circle())
                 }
 
-            
-                Button("Reset") {
+                Spacer()
+
+                Button(action: {
+                    generateHapticFeedback()
                     resetTimer()
+                }) {
+                    Text("Reset")
+                        .frame(width: 70, height: 70)
+                        .background(Color.gray)
+                        .foregroundColor(.white)
+                        .clipShape(Circle())
                 }
-                .frame(width: 70, height: 70)
-                .background(Color.gray)
-                .foregroundColor(.white)
-                .clipShape(Circle())
                 .disabled(isRunning)
-        
             }
-            .padding()
+            .padding([.leading, .trailing], 20)
+
+            Spacer()
+
+            Text(formatTime(timeElapsed))
+                .font(.largeTitle)
+                .padding()
         }
     }
 
@@ -165,12 +171,14 @@ struct StopwatchView: View {
         timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { _ in
             timeElapsed += 1
         }
+        startHapticFeedbackLoop()
     }
 
     func stopTimer() {
         isRunning = false
         timer?.invalidate()
         timer = nil
+        stopHapticFeedbackLoop()
     }
 
     func resetTimer() {
@@ -182,12 +190,24 @@ struct StopwatchView: View {
         let seconds = Int(time) % 60
         return String(format: "%02d:%02d", minutes, seconds)
     }
-    
-    func provideHapticFeedback() {
-        let generator = UIImpactFeedbackGenerator(style: .heavy)
+
+    func generateHapticFeedback() {
+        let generator = UIImpactFeedbackGenerator(style: .medium)
         generator.impactOccurred()
     }
+
+    func startHapticFeedbackLoop() {
+        hapticTimer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { _ in
+            generateHapticFeedback()
+        }
+    }
+
+    func stopHapticFeedbackLoop() {
+        hapticTimer?.invalidate()
+        hapticTimer = nil
+    }
 }
+
 
 
 struct TimerView: View {
@@ -262,6 +282,7 @@ struct TimerView: View {
         let generator = UIImpactFeedbackGenerator(style: .heavy)
         generator.impactOccurred()
     }
+    
 }
 
 struct ClockAppView_Previews: PreviewProvider {

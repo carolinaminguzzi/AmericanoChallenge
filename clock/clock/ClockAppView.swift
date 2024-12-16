@@ -12,15 +12,6 @@ import UIKit
 struct ClockAppView: View {
     var body: some View {
         TabView {
-            WorldClockView()
-                .tabItem {
-                    Label("World Clock", systemImage: "globe")
-                }
-
-            AlarmView()
-                .tabItem {
-                    Label("Alarm", systemImage: "alarm")
-                }
 
             StopwatchView()
                 .tabItem {
@@ -34,88 +25,6 @@ struct ClockAppView: View {
         }
         
     }
-}
-
-struct WorldClockView: View {
-    @State private var cities: [String] = [
-        "New York", "London", "Tokyo", "Paris", "Sydney"
-    ] // Array dinamico delle città
-
-    var body: some View {
-        NavigationView {
-            List {
-                ForEach(cities, id: \.self) { city in
-                    HStack {
-                        VStack(alignment: .leading) {
-                            Text(city)
-                                .font(.headline)
-                            Text("Time Zone")
-                                .font(.subheadline)
-                                .foregroundColor(.gray)
-                        }
-                        Spacer()
-                        Text("12:34 PM")
-                            .font(.title3)
-                    }
-                }
-                .onDelete(perform: deleteCity) // Permette l'eliminazione
-            }
-            .navigationTitle("World Clock")
-            .toolbar {
-                EditButton() // Bottone per attivare/disattivare la modalità di modifica
-            }
-        }
-    }
-
-    // Funzione per eliminare una città
-    private func deleteCity(at offsets: IndexSet) {
-        cities.remove(atOffsets: offsets)
-    }
-}
-
-struct AlarmView: View {
-    @State private var alarms: [Bool] = Array(repeating: true, count: 5) // Stato per le sveglie
-
-    var body: some View {
-        NavigationView {
-            List {
-                ForEach(alarms.indices, id: \.self) { index in
-                    HStack {
-                        VStack(alignment: .leading) {
-                            Text("Alarm \(index + 1)")
-                                .font(.headline)
-                            Text("Repeat")
-                                .font(.subheadline)
-                                .foregroundColor(.gray)
-                        }
-                        Spacer()
-                        Toggle("", isOn: $alarms[index]) // Collega ogni toggle al suo stato
-                            .labelsHidden()
-                    }
-                
-                }
-                .onDelete(perform: deleteAlarm) // Permette l'eliminazione
-            }
-            .navigationTitle("Alarm")
-            .toolbar {
-                EditButton() // Bottone per attivare/disattivare la modalità di modifica
-            }
-        }
-    }
-    
-    
-
-    // Funzione per eliminare una sveglia
-    private func deleteAlarm(at offsets: IndexSet) {
-        alarms.remove(atOffsets: offsets)
-    }
-    
-    func provideHapticFeedback() {
-        let generator = UIImpactFeedbackGenerator(style: .heavy)
-        generator.impactOccurred()
-    }
-    
-    
 }
 
 

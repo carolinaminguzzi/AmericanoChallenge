@@ -8,6 +8,7 @@
 import SwiftUI
 import UIKit
 import AVFoundation
+import AudioToolbox
 
 
 struct ClockAppView: View {
@@ -164,118 +165,168 @@ struct TimerView: View {
     @State private var timeRemaining: TimeInterval = 0
     @State private var isRunning = false
     @State private var timer: Timer? = nil
-    @State private var rotationAngle: Double = 0 // Per il cerchio di caricamento
+    @State private var hapticTimer: Timer? = nil
+    @State private var audioPlayer: AVAudioPlayer?
+
     @State private var selectedHours: Int = 0
     @State private var selectedMinutes: Int = 0
     @State private var selectedSeconds: Int = 0
 
+    @State private var isPulsatingLeft = false // Controls alternating pulsation
+
     var body: some View {
         ZStack {
-            // Sfondo verde per tutta la view
             Color.green
                 .edgesIgnoringSafeArea(.all)
 
             VStack {
                 Spacer()
 
-                // Picker con numeri gialli quando selezionati
-                ZStack {
-                    HStack(spacing: 0) {
-                        PickerColumn(title: "hours", range: 0..<25, selection: $selectedHours)
-                        PickerColumn(title: "min", range: 0..<60, selection: $selectedMinutes)
-                        PickerColumn(title: "sec", range: 0..<60, selection: $selectedSeconds)
-                    }
-                    .padding(.horizontal, 20)
-                }
-                .padding()
-
-                Spacer()
-
-                // Cerchio di caricamento visibile solo quando il timer è in esecuzione
                 if isRunning {
-                    ZStack {
-                        Circle()
-                            .trim(from: 0, to: 1)
-                            .stroke(Color.yellow, lineWidth: 5)
-                            .frame(width: 150, height: 150)
-                            .rotationEffect(.degrees(rotationAngle))
-                            .animation(.linear(duration: 1), value: rotationAngle) // Animazione fluida
-                    }
-                }
-
-                // Pulsanti
-                HStack(spacing: 60) {
-                    Button(action: {
-                        if isRunning {
+                    // Buttons move to the center
+                    HStack(spacing: 50) {
+                        Button(action: {
                             stopTimer()
-                        } else {
-                            startTimer()
+                        }) {
+                            Text("")
+                                .frame(width: 100, height: 100)
+                                .background(Color.yellow)
+                                .foregroundColor(.black)
+                                .clipShape(Circle())
+                                .font(.headline)
+                                .scaleEffect(isPulsatingLeft ? 1.2 : 1.0) // Pulsate
+                                .animation(.easeInOut(duration: 1).repeatForever(autoreverses: true), value: isPulsatingLeft)
                         }
-                    }) {
-                        Text(isRunning ? "Stop" : "Start")
-                            .frame(width: 100, height: 100)
-                            .foregroundColor(.yellow)
-                            .clipShape(Circle())
-                            .font(.headline)
-                    }
 
-                    Button(action: {
-                        resetTimer()
-                    }) {
-                        Text("Reset")
-                            .frame(width: 100, height: 100)
-                            .foregroundColor(.yellow)
-                            .clipShape(Circle())
-                            .font(.headline)
+                        Button(action: {
+                            resetTimer()
+                        }) {
+                            Text("")
+                                .frame(width: 100, height: 100)
+                                .background(Color.yellow)
+                                .foregroundColor(.black)
+                                .clipShape(Circle())
+                                .font(.headline)
+                                .scaleEffect(isPulsatingLeft ? 1.0 : 1.2) // Alternate pulsate
+                                .animation(.easeInOut(duration: 1).repeatForever(autoreverses: true), value: isPulsatingLeft)
+                        }
                     }
-                    .disabled(isRunning)
+                    .transition(.move(edge: .bottom))
+                    .onAppear {
+                        startPulsatingAnimation()
+                        startHapticAndSoundFeedback()
+                    }
+                    .onDisappear {
+                        stopHapticAndSoundFeedback()
+                    }
+                } else {
+                    // Time Picker when timer is not running
+                    VStack {
+                        HStack(spacing: 0) {
+                            PickerColumn(title: "sec", range: 0..<60, selection: $selectedSeconds)
+                            PickerColumn(title: "hours", range: 0..<25, selection: $selectedHours)
+                            PickerColumn(title: "min", range: 0..<60, selection: $selectedMinutes)
+                        }
+                        .padding()
+
+                        HStack(spacing: 50) {
+                            // Start Button
+                            Button(action: {
+                                startTimer()
+                            }) {
+                                Text("")
+                                    .frame(width: 100, height: 100)
+                                    .background(Color.yellow.opacity(0.6))
+                                    .foregroundColor(.black)
+                                    .clipShape(Circle())
+                                    .font(.headline)
+                            }
+
+                            // Reset Button
+                            Button(action: {
+                                resetTimer()
+                            }) {
+                                Text("")
+                                    .frame(width: 100, height: 100)
+                                    .background(Color.yellow)
+                                    .foregroundColor(.black)
+                                    .clipShape(Circle())
+                                    .font(.headline)
+                            }
+                        }
+                        .animation(.easeInOut(duration: 0.5), value: isRunning)
+                    }
                 }
-                .padding(.bottom, 50)
 
                 Spacer()
             }
+            .animation(.easeInOut(duration: 0.5), value: isRunning)
         }
     }
 
+    // Start Timer
     func startTimer() {
         timeRemaining = TimeInterval((selectedHours * 3600) + (selectedMinutes * 60) + selectedSeconds)
         isRunning = true
-        rotationAngle = 0
+
         timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { _ in
             if timeRemaining > 0 {
                 timeRemaining -= 1
-                rotationAngle += 360 // Ruota il cerchio di 360° ogni secondo
-                playSound()
-                generateHapticFeedback()
             } else {
                 stopTimer()
             }
         }
     }
 
+    // Stop Timer
     func stopTimer() {
         isRunning = false
         timer?.invalidate()
         timer = nil
+        stopHapticAndSoundFeedback()
     }
 
+    // Reset Timer
     func resetTimer() {
         stopTimer()
         selectedHours = 0
         selectedMinutes = 0
         selectedSeconds = 0
         timeRemaining = 0
-        rotationAngle = 0
     }
 
-    func generateHapticFeedback() {
-        let generator = UIImpactFeedbackGenerator(style: .heavy)
-        generator.impactOccurred()
+    // Pulsating Animation
+    func startPulsatingAnimation() {
+        isPulsatingLeft = true
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+            isPulsatingLeft.toggle()
+        }
     }
 
-    func playSound() {
-        let systemSoundID: SystemSoundID = 1053 // Suono di beep predefinito
-        AudioServicesPlaySystemSound(systemSoundID)
+    // Haptic and Sound Feedback
+    func startHapticAndSoundFeedback() {
+        let hapticGenerator = UIImpactFeedbackGenerator(style: .rigid)
+        hapticTimer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { _ in
+            hapticGenerator.impactOccurred()
+            playTickSound()
+        }
+    }
+
+    func stopHapticAndSoundFeedback() {
+        hapticTimer?.invalidate()
+        hapticTimer = nil
+        audioPlayer?.stop()
+    }
+
+    // Play Tick Sound
+    func playTickSound() {
+        guard let soundURL = Bundle.main.url(forResource: "tick", withExtension: "wav") else { return }
+        do {
+            audioPlayer = try AVAudioPlayer(contentsOf: soundURL)
+            audioPlayer?.play()
+        } catch {
+            print("Error playing sound: \(error.localizedDescription)")
+        }
     }
 }
 
@@ -284,16 +335,18 @@ struct PickerColumn: View {
     let range: Range<Int>
     @Binding var selection: Int
 
+    // Computed property: Shuffle the numbers in the range
+    private var shuffledValues: [Int] {
+        Array(range).shuffled()
+    }
+
     var body: some View {
         VStack {
             Picker(title, selection: $selection) {
-                ForEach(range, id: \.self) { value in
+                ForEach(shuffledValues, id: \.self) { value in
                     Text("\(value)")
-                        .font(.system(size: 24, weight: .bold))
-                        .foregroundColor(value == selection ? Color.yellow : .primary) // Giallo per il valore selezionato
-                        .scaleEffect(value == selection ? 1.0 : 1.2) // Rende il testo non selezionato più grande
-                        .animation(.easeInOut(duration: 0.3), value: selection) // Animazione fluida
-                        .frame(maxWidth: .infinity)
+                        .font(.system(size: 24))
+                        .foregroundColor(.black)
                 }
             }
             .pickerStyle(.wheel)
@@ -302,7 +355,7 @@ struct PickerColumn: View {
 
             Text(title)
                 .font(.subheadline)
-                .foregroundColor(.gray)
+                .foregroundColor(.black)
         }
     }
 }

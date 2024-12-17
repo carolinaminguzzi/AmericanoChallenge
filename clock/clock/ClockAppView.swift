@@ -64,7 +64,7 @@ struct StopwatchView: View {
                         resetTimer()
                     }) {
                         Text("Reset")
-                            .frame(width: 70, height: 70)
+                            .frame(width: 90, height: 90)
                             .background(Color.blue)
                             .foregroundColor(.blue)
                             .clipShape(Circle())
@@ -95,9 +95,9 @@ struct StopwatchView: View {
                             startTimer()
                         }
                     }) {
-                        Text(isRunning ? "Stop" : "Start")
+                        Text(isRunning ? "" : "")
                             .frame(width: 70, height: 70)
-                            .background(isRunning ? Color.blue : Color.blue)
+                            .background(isRunning ? Color.blue : Color.blue.opacity(0.8))
                             .foregroundColor(.blue)
                             .clipShape(Circle())
                             .bold()
@@ -235,7 +235,7 @@ struct TimerView: View {
                                 startTimer()
                             }) {
                                 Text("")
-                                    .frame(width: 100, height: 100)
+                                    .frame(width: 70, height: 70)
                                     .background(Color.yellow.opacity(0.6))
                                     .foregroundColor(.black)
                                     .clipShape(Circle())
@@ -320,14 +320,10 @@ struct TimerView: View {
 
     // Play Tick Sound
     func playTickSound() {
-        guard let soundURL = Bundle.main.url(forResource: "tick", withExtension: "wav") else { return }
-        do {
-            audioPlayer = try AVAudioPlayer(contentsOf: soundURL)
-            audioPlayer?.play()
-        } catch {
-            print("Error playing sound: \(error.localizedDescription)")
-        }
+        AudioServicesPlaySystemSound(1104)
     }
+    
+    
 }
 
 struct PickerColumn: View {
@@ -346,7 +342,7 @@ struct PickerColumn: View {
                 ForEach(shuffledValues, id: \.self) { value in
                     Text("\(value)")
                         .font(.system(size: 24))
-                        .foregroundColor(.black)
+                        .foregroundColor(.yellow)
                 }
             }
             .pickerStyle(.wheel)
@@ -355,7 +351,7 @@ struct PickerColumn: View {
 
             Text(title)
                 .font(.subheadline)
-                .foregroundColor(.black)
+                .foregroundColor(.yellow)
         }
     }
 }

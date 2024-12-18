@@ -11,25 +11,32 @@ import AVFoundation
 import AudioToolbox
 
 
+
+
 struct ClockAppView: View {
+    init() {
+        // Set the color of the selected tab item to yellow
+        UITabBar.appearance().tintColor = UIColor.systemGray
+        // Set the unselected tab item color (optional)
+        UITabBar.appearance().unselectedItemTintColor = UIColor.gray
+    }
+    
     var body: some View {
         TabView {
-
+            
+            TimerView()
+                .tabItem {
+                    Label("Timer", systemImage: "timer")
+                }
+            
             StopwatchView()
                 .tabItem {
                     Label("Stopwatch", systemImage: "stopwatch")
                 }
 
-            TimerView()
-                .tabItem {
-                    Label("Timer", systemImage: "timer")
-                }
         }
-    
     }
-    
 }
-
 
 struct StopwatchView: View {
     @State private var isRunning = false
@@ -84,30 +91,28 @@ struct StopwatchView: View {
                 Spacer()
 
                 HStack {
-                    Button(action: {
-                        isButtonPressed = true
-                        withAnimation(.spring(response: 0.3, dampingFraction: 0.6, blendDuration: 0)) {
-                            isButtonPressed = false
+                    Circle()
+                        .frame(width: 70, height: 70)
+                        .foregroundColor(isRunning ? Color.blue : Color.blue)
+                        .overlay(
+                            Text(isRunning ? "" : "")
+                                .foregroundColor(.white)
+                                .font(.headline)
+                        )
+                        .scaleEffect(isButtonPressed ? 1.2 : 1.0) // Ingrandisce quando premuto
+                        .onLongPressGesture(minimumDuration: 2) {
+                            if isRunning {
+                                stopTimer()
+                            } else {
+                                startTimer()
+                            }
                         }
-                        if isRunning {
-                            stopTimer()
-                        } else {
-                            startTimer()
-                        }
-                    }) {
-                        Text(isRunning ? "" : "")
-                            .frame(width: 70, height: 70)
-                            .background(isRunning ? Color.blue : Color.blue.opacity(0.8))
-                            .foregroundColor(.blue)
-                            .clipShape(Circle())
-                            .bold()
-                            .scaleEffect(isButtonPressed ? 1.2 : 1.0) // Ingrandisce quando premuto
-                    }
-                    .padding(.bottom, 20)
-                    .padding(.leading, 20)
 
                     Spacer()
+                      
                 }
+                .padding(.leading, 20)
+                .padding(.bottom, 20)
             }
         }
     }
@@ -118,6 +123,7 @@ struct StopwatchView: View {
             timeElapsed += 1
         }
         startHapticFeedbackLoop()
+        playBuiltInSound() // Play sound feedback when the timer starts
     }
 
     func stopTimer() {
@@ -125,6 +131,7 @@ struct StopwatchView: View {
         timer?.invalidate()
         timer = nil
         stopHapticFeedbackLoop()
+        playBuiltInSound()
 
         // Aggiorna il valore mostrato quando si preme "Stop"
         displayedTime = timeElapsed
@@ -155,6 +162,11 @@ struct StopwatchView: View {
     func stopHapticFeedbackLoop() {
         hapticTimer?.invalidate()
         hapticTimer = nil
+    }
+
+    // MARK: - Play Built-In Sound
+    func playBuiltInSound() {
+        AudioServicesPlaySystemSound(1057) // "Mail Sent" sound
     }
 }
 
@@ -223,9 +235,9 @@ struct TimerView: View {
                     // Time Picker when timer is not running
                     VStack {
                         HStack(spacing: 0) {
-                            PickerColumn(title: "sec", range: 0..<60, selection: $selectedSeconds)
-                            PickerColumn(title: "hours", range: 0..<25, selection: $selectedHours)
-                            PickerColumn(title: "min", range: 0..<60, selection: $selectedMinutes)
+                            PickerColumn(title: "sec", range: 0..<59, selection: $selectedSeconds)
+                            PickerColumn(title: "hours", range: 0..<24, selection: $selectedHours)
+                            PickerColumn(title: "min", range: 0..<59, selection: $selectedMinutes)
                         }
                         .padding()
 
@@ -305,10 +317,10 @@ struct TimerView: View {
 
     // Haptic and Sound Feedback
     func startHapticAndSoundFeedback() {
-        let hapticGenerator = UIImpactFeedbackGenerator(style: .rigid)
+        let hapticGenerator = UIImpactFeedbackGenerator(style: .heavy)
         hapticTimer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { _ in
             hapticGenerator.impactOccurred()
-            playTickSound()
+            playBuiltInSound()
         }
     }
 
@@ -319,10 +331,9 @@ struct TimerView: View {
     }
 
     // Play Tick Sound
-    func playTickSound() {
-        AudioServicesPlaySystemSound(1104)
+    func playBuiltInSound() {
+        AudioServicesPlaySystemSound(1057) // "Mail Sent" sound
     }
-    
     
 }
 

@@ -14,159 +14,32 @@ import AudioToolbox
 
 
 struct ClockAppView: View {
+    
+
     init() {
         // Set the color of the selected tab item to yellow
-        UITabBar.appearance().tintColor = UIColor.systemGray
+        UITabBar.appearance().tintColor = UIColor.systemPink
         // Set the unselected tab item color (optional)
         UITabBar.appearance().unselectedItemTintColor = UIColor.gray
+        
+        //Cacca pupu
+        
     }
     
     var body: some View {
         TabView {
             
             TimerView()
-                .tabItem {
-                    Label("Timer", systemImage: "timer")
-                }
+            .tabItem {
+                Label("Timer", systemImage: "timer")
+            }
             
             StopwatchView()
-                .tabItem {
-                    Label("Stopwatch", systemImage: "stopwatch")
-                }
-
-        }
-    }
-}
-
-struct StopwatchView: View {
-    @State private var isRunning = false
-    @State private var timeElapsed: TimeInterval = 0 // Tempo conteggiato in background
-    @State private var displayedTime: TimeInterval = 0 // Tempo mostrato all'utente
-    @State private var timer: Timer? = nil
-    @State private var hapticTimer: Timer? = nil
-    @State private var isButtonPressed = false // Stato per controllare l'ingrandimento del bottone
-
-    var body: some View {
-        ZStack {
-            Color.purple
-                .edgesIgnoringSafeArea(.all) // Sfondo viola
-
-            // Timer centrato nella vista
-            VStack {
-                Spacer()
-
-                Text(formatTime(displayedTime)) // Mostra solo il tempo fermato
-                    .font(.largeTitle)
-                    .padding()
-                    .foregroundColor(.blue)
-
-                Spacer()
+            .tabItem {
+                Label("Stopwatch", systemImage: "stopwatch")
             }
 
-            // Bottone Reset in alto a sinistra
-            VStack {
-                HStack {
-                    Button(action: {
-                        generateHapticFeedback()
-                        resetTimer()
-                    }) {
-                        Text("Reset")
-                            .frame(width: 90, height: 90)
-                            .background(Color.blue)
-                            .foregroundColor(.blue)
-                            .clipShape(Circle())
-                            .font(.headline)
-                    }
-                    .padding(.top, 20)
-                    .padding(.leading, 20)
-
-                    Spacer()
-                }
-
-                Spacer()
-            }
-
-            // Bottone Start/Stop in basso a sinistra
-            VStack {
-                Spacer()
-
-                HStack {
-                    Circle()
-                        .frame(width: 70, height: 70)
-                        .foregroundColor(isRunning ? Color.blue : Color.blue)
-                        .overlay(
-                            Text(isRunning ? "" : "")
-                                .foregroundColor(.white)
-                                .font(.headline)
-                        )
-                        .scaleEffect(isButtonPressed ? 1.2 : 1.0) // Ingrandisce quando premuto
-                        .onLongPressGesture(minimumDuration: 2) {
-                            if isRunning {
-                                stopTimer()
-                            } else {
-                                startTimer()
-                            }
-                        }
-
-                    Spacer()
-                      
-                }
-                .padding(.leading, 20)
-                .padding(.bottom, 20)
-            }
         }
-    }
-
-    func startTimer() {
-        isRunning = true
-        timer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { _ in
-            timeElapsed += 1
-        }
-        startHapticFeedbackLoop()
-        playBuiltInSound() // Play sound feedback when the timer starts
-    }
-
-    func stopTimer() {
-        isRunning = false
-        timer?.invalidate()
-        timer = nil
-        stopHapticFeedbackLoop()
-        playBuiltInSound()
-
-        // Aggiorna il valore mostrato quando si preme "Stop"
-        displayedTime = timeElapsed
-    }
-
-    func resetTimer() {
-        timeElapsed = 0
-        displayedTime = 0
-    }
-
-    func formatTime(_ time: TimeInterval) -> String {
-        let minutes = Int(time) / 60
-        let seconds = Int(time) % 60
-        return String(format: "%02d:%02d", minutes, seconds)
-    }
-
-    func generateHapticFeedback() {
-        let generator = UIImpactFeedbackGenerator(style: .medium)
-        generator.impactOccurred()
-    }
-
-    func startHapticFeedbackLoop() {
-        hapticTimer = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { _ in
-            generateHapticFeedback()
-        }
-    }
-
-    func stopHapticFeedbackLoop() {
-        hapticTimer?.invalidate()
-        hapticTimer = nil
-    }
-
-    // MARK: - Play Built-In Sound
-    func playBuiltInSound() {
-        AudioServicesPlaySystemSound(1057) // "Mail Sent" sound
     }
 }
 
